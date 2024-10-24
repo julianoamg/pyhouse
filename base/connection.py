@@ -1,7 +1,12 @@
 import clickhouse_connect
+import os
 
 
-def connection_factory(custom_connection=None, host='localhost', username='default', password='password'):
+def connection_factory(
+    custom_connection=None, 
+    host=os.getenv('CLICKHOUSE_HOST', default='localhost'), 
+    username=os.getenv('CLICKHOUSE_USERNAME', default='default'), 
+    password=os.getenv('CLICKHOUSE_PASSWORD', default='password')):
         if custom_connection:
             return custom_connection
 
