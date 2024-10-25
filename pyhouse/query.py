@@ -97,15 +97,25 @@ def write_spec(entity, changed=None):
     return spec[0], spec[1], spec[2]
 
 
-def add_query(entity):
+def add_query(entity, _raw):
     spec = write_spec(entity)
-    return connection.command(f"INSERT INTO {spec[0]} ({spec[1]}) VALUES ({spec[2]})").summary
+    query = f"INSERT INTO {spec[0]} ({spec[1]}) VALUES ({spec[2]})"
+
+    if _raw:
+        return pretty_query(query)
+
+    return connection.command().summary
 
 
-def edit_query(entity, changed):
+def edit_query(entity, changed, _raw):
     props = write_spec(entity, changed)
     spec = m([f'{x}={y}' for x, y in zip(props[1], props[2]) for props in props])
-    return connection.command(f"ALTER TABLE {props[0]} UPDATE ({spec})").summary
+    query = f"ALTER TABLE {props[0]} UPDATE ({spec})"
+
+    if _raw:
+        return pretty_query(query)
+
+    return connection.command().summary
 
 
 def create_query(entity, _raw):

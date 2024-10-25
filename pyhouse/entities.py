@@ -47,12 +47,12 @@ class Entity:
         if rows:
             return rows[0]
 
-    def save(self):
+    def save(self, _raw=False):
         if self._added:
-            add_query(self)
+            add_query(self, _raw)
         else:
             self._added = False
-            edit_query(self, self._changed)
+            edit_query(self, self._changed, _raw)
 
         return self
 
