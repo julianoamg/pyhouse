@@ -1,6 +1,7 @@
 from pyhouse.connection import connection
-from pyhouse.head import DataType, Type
+from pyhouse.head import Type
 from pyhouse.query import add_query, edit_query, search_query, create_query, drop_query
+from pyhouse.utils import scan_attrs
 
 
 # noinspection SqlDialectInspection
@@ -10,13 +11,17 @@ class Entity:
     id = Type.UUID()
 
     def __init__(self):
+        self._undefined = True
         self._changed = {}
         self._added = True
+        self._attrs = scan_attrs(self)
 
     def __setattr__(self, prop, content):
         super().__setattr__(prop, content)
-        if isinstance(content, DataType):
-            self._changed.update({prop: True})
+
+        if not prop.startswith('_') and not getattr(self, '_undefined', True) and not self._added:
+            if prop in self._attrs:
+                self._changed.update({prop: True})
 
     @classmethod
     def _execute(cls, query, _raw=False):
@@ -49,15 +54,10 @@ class Entity:
 
     def save(self, _raw=False):
         if self._added:
-            response = add_query(self, _raw)
+            return add_query(self, _raw)
         else:
             self._added = False
-            response = edit_query(self, self._changed, _raw)
-
-        if _raw:
-            return response
-
-        return self
+            return edit_query(self, self._changed, _raw)
 
     @classmethod
     def count(cls, **config):

@@ -1,7 +1,12 @@
+import logging
 import sqlglot
 from pyhouse.connection import connection
 from pyhouse.head import DataType
 from pyhouse.utils import m, as_dict, as_entity, scan_attrs
+
+
+logger = logging.getLogger("sqlglot")
+logger.setLevel(logging.ERROR)
 
 
 def props_spec(entity, props):
@@ -17,7 +22,7 @@ def props_factory(entity, changed=None):
 
     props = {}
 
-    for name, prop in scan_attrs(entity):
+    for name, prop in entity._attrs.items():
         if changed and name not in changed:
             continue
 
@@ -31,7 +36,7 @@ def props_factory(entity, changed=None):
             else:
                 props[name] = f"'{props[name]}'"
 
-    return props_spec(entity, props)
+    return entity, props
 
 
 def head_spec(entity, config):
@@ -93,12 +98,11 @@ def search_query(entity, **config):
 
 
 def write_spec(entity, changed=None):
-    spec = props_factory(entity, changed)
-    return spec[0], spec[1], spec[2]
+    return props_factory(entity, changed)
 
 
 def add_query(entity, _raw):
-    spec = write_spec(entity)
+    spec = props_spec(*write_spec(entity))
     query = f"INSERT INTO {spec[0]} ({spec[1]}) VALUES ({spec[2]})"
 
     if _raw:
@@ -108,13 +112,13 @@ def add_query(entity, _raw):
 
 
 def edit_query(entity, changed, _raw):
-    props = write_spec(entity, changed)
-    spec = m([f'{x}={y}' for prop in props for x, y in zip(prop[1], prop[2])])
-    query = f"ALTER TABLE {props[0]} UPDATE ({spec})"
-
+    spec = write_spec(entity, changed)
+    entity = spec[0]
+    name = entity.__class__.__name__
+    definition = ', '.join([f'{k}={v}' for k, v in spec[1].items()])
+    query = f"ALTER TABLE {name} UPDATE {definition} WHERE id='{entity.id}'"
     if _raw:
         return pretty_query(query)
-
     return connection.command(query).summary
 
 

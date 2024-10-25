@@ -1,3 +1,6 @@
+from pyhouse.head import DataType
+
+
 def m(parts, between=', '):
     return f'{between}'.join(parts)
 
@@ -17,6 +20,7 @@ def as_entity(entity, entries, _head):
                 setattr(obj, k, v)
 
         setattr(obj, '_added', False)
+        setattr(obj, '_undefined', False)
         rows.append(obj)
 
     return rows
@@ -27,8 +31,13 @@ def scan_attrs(instance):
 
     for attr in dir(instance):
         if not attr.startswith('__'):
+            attr_v = getattr(instance, attr)
+
+            if not isinstance(attr_v, DataType):
+                continue
+
             try:
-                attrs[attr] = getattr(instance, attr)
+                attrs[attr] = attr_v
             except AttributeError:
                 pass
 
