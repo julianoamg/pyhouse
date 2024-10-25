@@ -49,10 +49,13 @@ class Entity:
 
     def save(self, _raw=False):
         if self._added:
-            add_query(self, _raw)
+            response = add_query(self, _raw)
         else:
             self._added = False
-            edit_query(self, self._changed, _raw)
+            response = edit_query(self, self._changed, _raw)
+
+        if _raw:
+            return response
 
         return self
 
