@@ -33,7 +33,3 @@ def scan_attrs(instance):
                 pass
 
     return attrs
-
-
-def ensure_path():
-
