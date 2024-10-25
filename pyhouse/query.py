@@ -1,7 +1,7 @@
 import sqlglot
-from connection import connection
-from head import DataType
-from utils import m, as_dict, as_entity, scan_attrs
+from pyhouse.connection import connection
+from pyhouse.head import DataType
+from pyhouse.utils import m, as_dict, as_entity, scan_attrs
 
 
 def props_spec(entity, props):

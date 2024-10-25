@@ -1,6 +1,6 @@
-from env import from_env
 import clickhouse_connect
 import os
+from pyhouse.env import from_env
 
 from_env()
 
