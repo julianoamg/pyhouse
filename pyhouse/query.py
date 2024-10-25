@@ -17,7 +17,7 @@ def props_factory(entity, changed=None):
 
     props = {}
 
-    for name, prop in entity.__class__.__dict__.items():
+    for name, prop in scan_attrs(entity):
         if changed and name not in changed:
             continue
 
@@ -104,18 +104,18 @@ def add_query(entity, _raw):
     if _raw:
         return pretty_query(query)
 
-    return connection.command().summary
+    return connection.command(query).summary
 
 
 def edit_query(entity, changed, _raw):
     props = write_spec(entity, changed)
-    spec = m([f'{x}={y}' for x, y in zip(props[1], props[2]) for props in props])
+    spec = m([f'{x}={y}' for prop in props for x, y in zip(prop[1], prop[2])])
     query = f"ALTER TABLE {props[0]} UPDATE ({spec})"
 
     if _raw:
         return pretty_query(query)
 
-    return connection.command().summary
+    return connection.command(query).summary
 
 
 def create_query(entity, _raw):
