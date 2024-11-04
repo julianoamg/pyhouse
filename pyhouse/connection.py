@@ -1,27 +1,25 @@
-import clickhouse_connect
 import os
 from pyhouse.env import from_env
+from clickhouse_driver import connect
 
 from_env()
 
 CLICKHOUSE_HOST = os.getenv('CLICKHOUSE_HOST', default='localhost')
+CLICKHOUSE_PORT = os.getenv('CLICKHOUSE_USERNAME', default='9000')
 CLICKHOUSE_USERNAME = os.getenv('CLICKHOUSE_USERNAME', default='default')
 CLICKHOUSE_PASSWORD = os.getenv('CLICKHOUSE_PASSWORD', default='password')
+CLICKHOUSE_DATABASE = os.getenv('CLICKHOUSE_DATABASE', default='default')
 
 
 def connection_factory(
     host=CLICKHOUSE_HOST,
+    port=CLICKHOUSE_PORT,
     username=CLICKHOUSE_USERNAME,
-    password=CLICKHOUSE_PASSWORD
+    password=CLICKHOUSE_PASSWORD,
+    database=CLICKHOUSE_DATABASE,
 ):
-    return clickhouse_connect.get_client(
-        host=host,
-        username=username,
-        password=password
-    )
+    return connect(f'clickhouse://{username}:{password}@{host}:{port}/{database}')
 
 
-try:
-    connection = connection_factory()
-except clickhouse_connect.driver.exceptions.OperationalError:
-    connection = None
+connection = connection_factory()
+cursor = connection.cursor()

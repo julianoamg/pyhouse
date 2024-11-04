@@ -1,7 +1,6 @@
 from pyhouse.connection import connection
-from pyhouse.head import Type
+from pyhouse.head import DataType, Type
 from pyhouse.query import add_query, edit_query, search_query, create_query, drop_query
-from pyhouse.utils import scan_attrs
 
 
 # noinspection SqlDialectInspection

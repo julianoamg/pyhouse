@@ -1,12 +1,7 @@
-import logging
 import sqlglot
-from pyhouse.connection import connection
+from pyhouse.connection import cursor
 from pyhouse.head import DataType
 from pyhouse.utils import m, as_dict, as_entity, scan_attrs
-
-
-logger = logging.getLogger("sqlglot")
-logger.setLevel(logging.ERROR)
 
 
 def props_spec(entity, props):
