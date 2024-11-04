@@ -34,7 +34,7 @@ class Entity:
     @classmethod
     def create(cls, _raw=False, _recreate=False):
         if _recreate:
-            drop_query(cls, _raw=True)
+            cls.drop(_raw=_raw)
         return create_query(cls, _raw=_raw)
 
     @classmethod
