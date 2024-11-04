@@ -1,6 +1,7 @@
 from pyhouse.connection import connection
 from pyhouse.head import DataType, Type
 from pyhouse.query import add_query, edit_query, search_query, create_query, drop_query
+from pyhouse.utils import scan_attrs
 
 
 # noinspection SqlDialectInspection
@@ -51,9 +52,9 @@ class Entity:
         if rows:
             return rows[0]
 
-    def save(self, _raw=False):
+    def save(self, _raw=False, _async=False):
         if self._added:
-            return add_query(self, _raw)
+            return add_query(self, _raw, _async)
         else:
             self._added = False
             return edit_query(self, self._changed, _raw)

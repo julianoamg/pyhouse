@@ -2,6 +2,7 @@ import sqlglot
 from pyhouse.connection import cursor
 from pyhouse.head import DataType
 from pyhouse.utils import m, as_dict, as_entity, scan_attrs
+from pyhouse.settings import Settings
 
 
 def props_spec(entity, props):
@@ -70,7 +71,10 @@ def head_mount(_count, _head):
 
 
 def pretty_query(query):
-    return sqlglot.transpile(query, read='clickhouse', pretty=True)[0]
+    try:
+        return sqlglot.transpile(query, read='clickhouse', pretty=True)[0]
+    except sqlglot.errors.ParseError:
+        return query
 
 
 def search_query(entity, **config):
@@ -80,7 +84,8 @@ def search_query(entity, **config):
     if _raw:
         return pretty_query(query)
 
-    rows = connection.query(query).result_rows
+    cursor.execute(query)
+    rows = cursor.fetchall()
 
     if _count:
         return rows[0][0]
@@ -96,25 +101,36 @@ def write_spec(entity, changed=None):
     return props_factory(entity, changed)
 
 
-def add_query(entity, _raw):
+def add_query(entity, _raw, _async):
     spec = props_spec(*write_spec(entity))
-    query = f"INSERT INTO {spec[0]} ({spec[1]}) VALUES ({spec[2]})"
+    settings = Settings()
+
+    if _async:
+        settings.add('async_insert', '1')
+        settings.add('wait_for_async_insert', '0')
+
+    query = f"INSERT INTO {spec[0]} ({spec[1]}) {settings.as_query()} VALUES ({spec[2]})"
 
     if _raw:
         return pretty_query(query)
 
-    return connection.command(query).summary
+    cursor.execute(query)
+    return cursor.fetchone()
 
 
 def edit_query(entity, changed, _raw):
     spec = write_spec(entity, changed)
     entity = spec[0]
     name = entity.__class__.__name__
+
     definition = ', '.join([f'{k}={v}' for k, v in spec[1].items()])
     query = f"ALTER TABLE {name} UPDATE {definition} WHERE id='{entity.id}'"
+
     if _raw:
         return pretty_query(query)
-    return connection.command(query).summary
+
+    cursor.execute(query)
+    return cursor.fetchone()
 
 
 def create_query(entity, _raw):
@@ -127,9 +143,9 @@ def create_query(entity, _raw):
     """
     if _raw:
         return pretty_query(query)
-    return connection.command(query).summary
+    return cursor.execute(query)
 
 
 def drop_query(entity, _raw):
     query = f"DROP TABLE IF EXISTS {entity.__name__};"
-    return pretty_query(query) if _raw else connection.command(query).summary
+    return pretty_query(query) if _raw else cursor.execute(query)
