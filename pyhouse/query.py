@@ -36,9 +36,7 @@ def props_factory(entity, changed=None):
 
 
 def head_spec(entity, config):
-    return config.get('_head') or [
-        k for k, v in entity.__dict__.items() if isinstance(v, DataType)
-    ]
+    return config.get('_head') or scan_attrs(entity).keys()
 
 
 def where_mount(entity, config):
