@@ -41,8 +41,7 @@ class FloatType:
 
 
 class BooleanType:
-    Float32 = ctype('Float32', predef=0.0)
-    Float64 = ctype('Float64', predef=0.0)
+    Bool = ctype('Bool', predef=0)
 
 
 class StringType:
