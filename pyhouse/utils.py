@@ -15,13 +15,15 @@ def as_entity(entity, entries, _fields):
 
     for row in as_dict(entries, _fields):
         obj = entity()
+        attrs = scan_attrs(entity)
 
         for k, v in row.items():
-            if k in entity.__dict__:
+            if k in attrs:
                 setattr(obj, k, v)
 
         setattr(obj, '_added', False)
         setattr(obj, '_undefined', False)
+
         rows.append(obj)
 
     return rows
