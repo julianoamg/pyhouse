@@ -1,149 +1,89 @@
-import sqlglot
-from pyhouse.connection import cursor
-from pyhouse.fields import DataType
-from pyhouse.utils import m, as_dict, as_entity, scan_attrs
-from pyhouse.settings import Settings
+from pyhouse.utils import chquery, as_dict, m
 
 
-def props_spec(entity, props):
-    return (
-        entity.__class__.__name__,
-        ', '.join(props.keys()),
-        ', '.join(props.values()))
+def chain(method):
+    def wrapper(invoker, *args, **kwargs):
+        method(invoker, *args, **kwargs)
+        return invoker
+    return wrapper
 
 
-def props_factory(entity, changed=None):
-    if not changed:
-        changed = {}
-
-    props = {}
-
-    for name, prop in entity._attrs.items():
-        if changed and name not in changed:
-            continue
-
-        if isinstance(prop, DataType):
-            body = getattr(entity, name)
-            body = getattr(body, 'content', body)
-            props[name] = body or prop.params.get('predef')
-
-            if callable(props[name]):
-                props[name] = props[name]()
-            else:
-                props[name] = f"'{props[name]}'"
-
-    return entity, props
+def get_fields(fields):
+    return [f.split(' AS ')[-1] for f in fields]
 
 
-def head_spec(entity, config):
-    return config.get('_fields') or scan_attrs(entity).keys()
+def get_grouped_fields(fields):
+    return [f.split(' AS ')[-1] for f in fields if 'sum(' not in f.lower()]
 
 
-def where_mount(entity, config):
-    exp = m([
-        f"{k} = '{config[k]}'"
-        for k, v in entity.__dict__.items()
-        if isinstance(v, DataType) and k in config
-    ], ' AND ')
-
-    return f"WHERE {exp}" if exp else ''
+class CombineType:
+    INNER = 'INNER'
 
 
-def search_spec(entity, config):
-    _max = config.get('_max')
-    _max = f'LIMIT {_max}' if _max else ''
+class Mounter:
+    query = []
 
-    return (
-        _max,
-        config.get('_raw', False),
-        config.get('_tiny', False),
-        config.get('_dict', False),
-        config.get('_count', False),
-        head_spec(entity, config),
-        entity.__name__
-    )
+    def add(self, piece):
+        self.query.append(piece)
+
+    def produce(self):
+        return m(self.query, ' ')
 
 
-def head_mount(_count, _fields):
-    return 'count()' if _count else m(_fields)
+class Query:
+    _fields = []
+    _offset = 0
+    _max = 100
+    _combine = []
+    _grouped = False
 
+    def __init__(self, entity):
+        self._entity = entity
 
-def pretty_query(query):
-    try:
-        return sqlglot.transpile(query, read='clickhouse', pretty=True)[0]
-    except sqlglot.errors.ParseError:
-        return query
+    @chain
+    def combine(self, *conditions, _type=CombineType.INNER):
+        for c in conditions:
+            _0_name = c[0]._entity.__name__
+            _0 = f'{_0_name}.{c[0]._name}'
+            _1 = f'{c[1]._entity.__name__}.{c[1]._name}'
+            self._combine.append(f'{_type} JOIN {_0_name} ON {_0} = {_1}')
 
+    @chain
+    def read(self, *fields):
+        for f in fields:
+            self._fields.append(f'{f._entity.__name__}.{f._name} AS {f._name}')
 
-def search_query(entity, **config):
-    _max, _raw, _tiny, _dict, _count, _fields, entity_name = search_spec(entity, config)
-    query = f"SELECT {head_mount(_count, _fields)} FROM {entity_name} {where_mount(entity, config)} {_max};"
+    @chain
+    def sum(self, *fields):
+        self._grouped = True
 
-    if _raw:
-        return pretty_query(query)
+        for f in fields:
+            self._fields.append(f'SUM({f._entity.__name__}.{f._name}) AS {f._name}_sum')
 
-    cursor.execute(query)
-    rows = cursor.fetchall()
+    @chain
+    def where(self, **conditions: dict):
+        ...
 
-    if _count:
-        return rows[0][0]
-    if _tiny:
-        return rows, _fields
-    if _dict:
-        return as_dict(rows, _fields)
+    @chain
+    def offset(self, n: int):
+        self._offset = n
 
-    return as_entity(entity, rows, _fields)
+    @chain
+    def max(self, n: int):
+        self._max = n
 
+    def fetch(self):
+        entity_name = self._entity.__name__
 
-def write_spec(entity, changed=None):
-    return props_factory(entity, changed)
+        mounter = Mounter()
+        mounter.add(f'SELECT {m(self._fields)}')
+        mounter.add(f'FROM {entity_name}')
+        mounter.add(m(self._combine, '\n'))
 
+        if self._grouped:
+            mounter.add(f'GROUP BY {m(get_grouped_fields(self._fields))}')
 
-def add_query(entity, _raw, _async):
-    spec = props_spec(*write_spec(entity))
-    settings = Settings()
+        mounter.add(f'LIMIT {self._max}')
+        mounter.add(f'OFFSET {self._offset}')
 
-    if _async:
-        settings.add('async_insert', '1')
-        settings.add('wait_for_async_insert', '0')
-
-    query = f"INSERT INTO {spec[0]} ({spec[1]}) {settings.as_query()} VALUES ({spec[2]})"
-
-    if _raw:
-        return pretty_query(query)
-
-    cursor.execute(query)
-    return cursor.fetchone()
-
-
-def edit_query(entity, changed, _raw):
-    spec = write_spec(entity, changed)
-    entity = spec[0]
-    name = entity.__class__.__name__
-
-    definition = ', '.join([f'{k}={v}' for k, v in spec[1].items()])
-    query = f"ALTER TABLE {name} UPDATE {definition} WHERE id='{entity.id}'"
-
-    if _raw:
-        return pretty_query(query)
-
-    cursor.execute(query)
-    return cursor.fetchone()
-
-
-def create_query(entity, _raw):
-    definition = [f'{k} {v.name}' for k, v in scan_attrs(entity).items() if isinstance(v, DataType)]
-    query = f"""
-        CREATE TABLE IF NOT EXISTS {entity.__name__} 
-        ({m(definition)})
-        ENGINE = MergeTree 
-        ORDER BY id PRIMARY KEY id;
-    """
-    if _raw:
-        return pretty_query(query)
-    return cursor.execute(query)
-
-
-def drop_query(entity, _raw):
-    query = f"DROP TABLE IF EXISTS {entity.__name__};"
-    return pretty_query(query) if _raw else cursor.execute(query)
+        return as_dict(chquery(mounter.produce()), get_fields(self._fields))

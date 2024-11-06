@@ -1,8 +1,7 @@
 from pyhouse.connection import connection
 from pyhouse.fields import DataType, Type
-from pyhouse.query import add_query, edit_query, search_query, create_query, drop_query
+from pyhouse.functions import add_query, edit_query, search_query, create_query, drop_query
 from pyhouse.utils import scan_attrs
-from pyhouse.builder.base import Query
 
 
 class Meta(type):
