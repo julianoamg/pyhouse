@@ -1,6 +1,6 @@
 import sqlglot
 from pyhouse.connection import cursor
-from pyhouse.head import DataType
+from pyhouse.fields import DataType
 from pyhouse.utils import m, as_dict, as_entity, scan_attrs
 from pyhouse.settings import Settings
 
@@ -36,7 +36,7 @@ def props_factory(entity, changed=None):
 
 
 def head_spec(entity, config):
-    return config.get('_head') or scan_attrs(entity).keys()
+    return config.get('_fields') or scan_attrs(entity).keys()
 
 
 def where_mount(entity, config):
@@ -64,8 +64,8 @@ def search_spec(entity, config):
     )
 
 
-def head_mount(_count, _head):
-    return 'count()' if _count else m(_head)
+def head_mount(_count, _fields):
+    return 'count()' if _count else m(_fields)
 
 
 def pretty_query(query):
@@ -76,8 +76,8 @@ def pretty_query(query):
 
 
 def search_query(entity, **config):
-    _max, _raw, _tiny, _dict, _count, _head, entity_name = search_spec(entity, config)
-    query = f"SELECT {head_mount(_count, _head)} FROM {entity_name} {where_mount(entity, config)} {_max};"
+    _max, _raw, _tiny, _dict, _count, _fields, entity_name = search_spec(entity, config)
+    query = f"SELECT {head_mount(_count, _fields)} FROM {entity_name} {where_mount(entity, config)} {_max};"
 
     if _raw:
         return pretty_query(query)
@@ -88,11 +88,11 @@ def search_query(entity, **config):
     if _count:
         return rows[0][0]
     if _tiny:
-        return rows, _head
+        return rows, _fields
     if _dict:
-        return as_dict(rows, _head)
+        return as_dict(rows, _fields)
 
-    return as_entity(entity, rows, _head)
+    return as_entity(entity, rows, _fields)
 
 
 def write_spec(entity, changed=None):

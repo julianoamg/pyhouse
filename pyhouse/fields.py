@@ -15,6 +15,10 @@ class DataType:
     def params(self):
         return self._params
 
+    def __get__(self, instance, owner):
+        self._entity = owner
+        return self
+
 
 def ctype(name, **kwargs):
     return partial(DataType, name, **kwargs)

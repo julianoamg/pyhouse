@@ -1,14 +1,34 @@
 from pyhouse.connection import connection
-from pyhouse.head import DataType, Type
+from pyhouse.fields import DataType, Type
 from pyhouse.query import add_query, edit_query, search_query, create_query, drop_query
 from pyhouse.utils import scan_attrs
+from pyhouse.builder.base import Query
+
+
+class Meta(type):
+    def __init__(cls, name, bases, class_dict):
+        super().__init__(name, bases, class_dict)
+
+        id_attr = Type.UUID()
+        id_attr._entity = cls
+
+        setattr(cls, 'id', id_attr)
+
+    def __getattribute__(cls, name):
+        attr = super().__getattribute__(name)
+
+        if isinstance(attr, DataType) and not hasattr(attr, '_name'):
+            attr._name = name
+        if isinstance(attr, DataType) and not hasattr(attr, '_entity'):
+            attr._name = cls
+
+        return attr
 
 
 # noinspection SqlDialectInspection
-class Entity:
+class Entity(metaclass=Meta):
     _changed = None
     _added = None
-    id = Type.UUID()
 
     def __init__(self):
         self._undefined = True

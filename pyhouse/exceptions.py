@@ -1,4 +1,4 @@
-from pyhouse.head import DataType
+from pyhouse.fields import DataType
 
 
 class PropertyNotFound(Exception):

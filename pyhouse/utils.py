@@ -1,18 +1,19 @@
-from pyhouse.head import DataType
+from pyhouse.fields import DataType
+from pyhouse.connection import cursor
 
 
 def m(parts, between=', '):
     return f'{between}'.join(parts)
 
 
-def as_dict(entries, _head):
-    return [dict(zip(_head, entry)) for entry in entries]
+def as_dict(entries, _fields):
+    return [dict(zip(_fields, entry)) for entry in entries]
 
 
-def as_entity(entity, entries, _head):
+def as_entity(entity, entries, _fields):
     rows = []
 
-    for row in as_dict(entries, _head):
+    for row in as_dict(entries, _fields):
         obj = entity()
 
         for k, v in row.items():
@@ -42,3 +43,8 @@ def scan_attrs(instance):
                 pass
 
     return attrs
+
+
+def chquery(query):
+    cursor.execute(query)
+    return cursor.fetchall()
