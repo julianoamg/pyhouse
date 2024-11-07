@@ -26,6 +26,10 @@ class EQ:
         self.format = f"{cast_exp(cast, field)} {self.operator} '{value}'"
 
 
+class NEQ(EQ):
+    operator = '!='
+
+
 class GT(EQ):
     operator = '>'
 
