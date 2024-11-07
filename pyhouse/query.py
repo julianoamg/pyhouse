@@ -159,7 +159,7 @@ class Query:
         return as_dict(chquery(self.query()), get_fields(self._fields))
 
     def count(self):
-        return chquery(f'SELECT count(*) FROM ({self.query()})')[0][0]
+        return chquery(f'SELECT count(*) FROM ({self.query(_max=0)})')[0][0]
 
     def unify(self, *fields, func="SUM", suffix='_unify', _raw=False, **kw_fields):
         _fields = mount_fields(fields, kw_fields, with_entity=False, func=func, fsuffix='_sum', suffix=suffix)
