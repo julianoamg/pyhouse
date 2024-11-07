@@ -150,19 +150,18 @@ class Query:
 
         return mounter.produce()
 
-    def query(self, _max=None):
-        _max = _max or self._max
+    def query(self, _max=0):
         self._query = self._produce_query(_max=_max)
         return self._query
 
     def fetch(self):
-        return as_dict(chquery(self.query()), get_fields(self._fields))
+        return as_dict(chquery(self.query(_max=self._max)), get_fields(self._fields))
 
     def count(self, _raw=False):
-        query = f'SELECT count(*) FROM ({self.query(_max=0)})'
+        query = f'SELECT count(*) FROM ({self.query()})'
         return query if _raw else chquery(query)[0][0]
 
     def unify(self, *fields, func="SUM", suffix='_unify', _raw=False, **kw_fields):
         _fields = mount_fields(fields, kw_fields, with_entity=False, func=func, fsuffix='_sum', suffix=suffix)
-        query = f'SELECT {m(_fields)} FROM ({self.query(_max=0)})'
+        query = f'SELECT {m(_fields)} FROM ({self.query()})'
         return query if _raw else as_dict(chquery(query), get_fields(_fields))
