@@ -42,6 +42,11 @@ class Entity(metaclass=Meta):
             if prop in self._attrs:
                 self._changed.update({prop: True})
 
+    def from_object(self, obj):
+        for name in self._attrs.keys():
+            if hasattr(obj, name):
+                setattr(self, name, getattr(obj, name))
+
     @classmethod
     def _execute(cls, query, _raw=False):
         return connection.command(query).summary
