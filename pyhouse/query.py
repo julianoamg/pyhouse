@@ -17,6 +17,8 @@ def get_grouped_fields(fields):
 
 
 def format_exp(f, func, with_entity=True, fsuffix=''):
+    if isinstance(f, SubQuery):
+        return f'({f.query()})'
     _entity_name = f'{f._entity.__name__}.' if with_entity else ''
     _exp = f if isinstance(f, str) else f'{_entity_name}{f._name}{fsuffix}'
     _exp = f'{func}({_exp})' if func else _exp
@@ -59,17 +61,23 @@ class Mounter:
 
 
 class Query:
-    _fields = []
-    _offset = 0
-    _max = 100
-    _combine = []
-    _grouped = False
-    _where = []
-    _order_by = []
-    _query = None
-
-    def __init__(self, entity):
+    def __init__(self, entity, alias=None, name=None):
         self._entity = entity
+
+        if alias:
+            self._alias = f'{entity.__name__} AS {alias}'
+        else:
+            self._alias = entity.__name__
+
+        self._fields = []
+        self._offset = 0
+        self._name = name or f'{entity.__name__}_query'
+        self._max = 100
+        self._combine = []
+        self._grouped = False
+        self._where = []
+        self._order_by = []
+        self._query = None
 
     def __len__(self):
         return self.count()
@@ -77,9 +85,9 @@ class Query:
     @chain
     def combine(self, *conditions, _type=CombineType.INNER):
         for c in conditions:
-            _0_name = c[0]._entity.__name__
-            _0 = f'{_0_name}.{c[0]._name}'
-            _1 = f'{c[1]._entity.__name__}.{c[1]._name}'
+            _0 = c[0] if isinstance(c[0], str) else f'{c[0]._entity.__name__}.{c[0]._name}'
+            _1 = c[1] if isinstance(c[1], str) else f'{c[1]._entity.__name__}.{c[1]._name}'
+            _0_name = _0.split('.')[0]
             self._combine.append(f'{_type} JOIN {_0_name} ON {_0} = {_1}')
 
     @chain
@@ -128,7 +136,7 @@ class Query:
             self._order_by.append(order)
 
     def _produce_query(self, _max):
-        entity_name = self._entity.__name__
+        entity_name = self._alias
 
         mounter = Mounter()
         mounter.add(f'SELECT {m(self._fields)}')
@@ -150,7 +158,9 @@ class Query:
 
         return mounter.produce()
 
-    def query(self, _max=0):
+    def query(self, _max=None):
+        if _max is None:
+            _max = self._max
         self._query = self._produce_query(_max=_max)
         return self._query
 
@@ -165,3 +175,7 @@ class Query:
         _fields = mount_fields(fields, kw_fields, with_entity=False, func=func, fsuffix='_sum', suffix=suffix)
         query = f'SELECT {m(_fields)} FROM ({self.query()})'
         return query if _raw else as_dict(chquery(query), get_fields(_fields))
+
+
+class SubQuery(Query):
+    ...

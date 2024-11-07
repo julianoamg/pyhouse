@@ -3,6 +3,8 @@ from pyhouse.utils import m
 
 
 def exp(field):
+    if isinstance(field, str):
+        return field
     return f'{field._entity.__name__}.{field._name}'
 
 
@@ -44,8 +46,9 @@ class IN:
 class EQ:
     operator = '='
 
-    def __init__(self, field, value, cast=None):
-        self.format = f"{cast_exp(cast, field)} {self.operator} '{value}'"
+    def __init__(self, field, value, cast=None, quote=True):
+        value = f"'{value}'" if quote else value
+        self.format = f"{cast_exp(cast, field)} {self.operator} {value}"
 
 
 class NEQ(EQ):
