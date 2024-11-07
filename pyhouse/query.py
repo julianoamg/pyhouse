@@ -18,7 +18,7 @@ def get_grouped_fields(fields):
 
 def format_exp(f, func, with_entity=True, fsuffix=''):
     _entity_name = f'{f._entity.__name__}.' if with_entity else ''
-    _exp = f'{_entity_name}{f._name}{fsuffix}'
+    _exp = f if isinstance(f, str) else f'{_entity_name}{f._name}{fsuffix}'
     _exp = f'{func}({_exp})' if func else _exp
     return _exp
 
