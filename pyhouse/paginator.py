@@ -13,7 +13,7 @@ class HousePaginator:
         self.count = self.query.count()
         self.query = self.query.max(self.per_page).offset((self.page - 1) * self.per_page)
         self.total_pages = int(math.ceil(self.count / self.per_page))
-        self.has_next = page < self.total_pages
+        self.has_next = self.page < self.total_pages
         self.has_previous = page > 1
 
     def as_dict(self):
