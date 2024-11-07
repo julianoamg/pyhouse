@@ -126,7 +126,7 @@ class Query:
 
             self._order_by.append(order)
 
-    def _produce_query(self, _max=_max):
+    def _produce_query(self, _max):
         entity_name = self._entity.__name__
 
         mounter = Mounter()
@@ -149,8 +149,9 @@ class Query:
 
         return mounter.produce()
 
-    def query(self, _max=_max):
+    def query(self, _max=None):
         if not self._query:
+            _max = _max or self._max
             self._query = self._produce_query(_max=_max)
         return self._query
 
