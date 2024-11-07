@@ -61,7 +61,7 @@ class Mounter:
 
 
 class Query:
-    def __init__(self, entity, alias=None, name=None):
+    def __init__(self, entity, alias=None, as_field=None):
         self._entity = entity
 
         if alias:
@@ -71,7 +71,7 @@ class Query:
 
         self._fields = []
         self._offset = 0
-        self._name = name or f'{entity.__name__}_query'
+        self._name = as_field or f'{entity.__name__}_query'
         self._max = 100
         self._combine = []
         self._grouped = False
