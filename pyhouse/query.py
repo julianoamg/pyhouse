@@ -150,9 +150,8 @@ class Query:
         return mounter.produce()
 
     def query(self, _max=None):
-        if not self._query:
-            _max = _max or self._max
-            self._query = self._produce_query(_max=_max)
+        _max = _max or self._max
+        self._query = self._produce_query(_max=_max)
         return self._query
 
     def fetch(self):
