@@ -16,6 +16,21 @@ def get_grouped_fields(fields):
     return [f.split(' AS ')[-1] for f in fields if 'sum(' not in f.lower()]
 
 
+def mount_fields(fields, *, with_entity=True, func='', fsuffix='', suffix=''):
+    _fields = []
+
+    for f in fields:
+        _entity_name = f'{f._entity.__name__}.' if with_entity else ''
+        _exp = f'{f._name}{fsuffix}'
+        _exp = f'{func}({_exp})' if func else _exp
+        field = f'{_exp} AS {f._name}{suffix}'
+
+        if field not in _fields:
+            _fields.append(field)
+
+    return _fields
+
+
 class CombineType:
     INNER = 'INNER'
 
@@ -37,6 +52,8 @@ class Query:
     _combine = []
     _grouped = False
     _where = []
+    _order_by = []
+    _query = None
 
     def __init__(self, entity):
         self._entity = entity
@@ -90,7 +107,12 @@ class Query:
             _type = f' {_type.strip()} '
             self._where.append(f'({m(cache, _type)})')
 
-    def _produce_query(self):
+    @chain
+    def order_by(self, *fields, _type='ASC'):
+        for f in fields:
+            self._order_by.append(f'{f._entity.__name__}.{f._name} {_type}')
+
+    def _produce_query(self, _max=_max):
         entity_name = self._entity.__name__
 
         mounter = Mounter()
@@ -104,14 +126,27 @@ class Query:
         if self._grouped:
             mounter.add(f'GROUP BY {m(get_grouped_fields(self._fields))}')
 
-        if self._max > 0:
+        if self._order_by:
+            mounter.add(f'ORDER BY {m(self._order_by)}')
+
+        if self._max > 0 and _max > 0:
             mounter.add(f'LIMIT {self._max}')
             mounter.add(f'OFFSET {self._offset}')
 
         return mounter.produce()
 
+    def query(self, _max=_max):
+        if not self._query:
+            self._query = self._produce_query(_max=_max)
+        return self._query
+
     def fetch(self):
-        return as_dict(chquery(self._produce_query()), get_fields(self._fields))
+        return as_dict(chquery(self.query()), get_fields(self._fields))
 
     def count(self):
-        return chquery(f'SELECT count(*) FROM ({self._produce_query()})')[0][0]
+        return chquery(f'SELECT count(*) FROM ({self.query()})')[0][0]
+
+    def unify(self, *fields, func="SUM", suffix='_unify', _raw=False):
+        _fields = mount_fields(fields, with_entity=False, func=func, fsuffix='_sum', suffix=suffix)
+        query = f'SELECT {m(_fields)} FROM ({self.query(_max=0)})'
+        return query if _raw else as_dict(chquery(query), get_fields(_fields))

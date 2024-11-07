@@ -10,17 +10,17 @@ def cast_exp(func, field):
     return f'{func}({exp(field)})' if func else exp(field)
 
 
-class ILIKE():
+class ILIKE:
     def __init__(self, field, value):
         self.format = f"LOWER({exp(field)}) LIKE LOWER('%{value}%')"
 
 
-class ISTARTS():
+class ISTARTS:
     def __init__(self, field, value):
         self.format = f"LOWER({exp(field)}) LIKE LOWER('{value}%')"
 
 
-class IENDS():
+class IENDS:
     def __init__(self, field, value):
         self.format = f"LOWER({exp(field)}) LIKE LOWER('%{value}')"
 
