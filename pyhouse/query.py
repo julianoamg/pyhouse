@@ -158,7 +158,7 @@ class Query:
     def fetch(self):
         return as_dict(chquery(self.query()), get_fields(self._fields))
 
-    def count(self, _raw=True):
+    def count(self, _raw=False):
         query = f'SELECT count(*) FROM ({self.query(_max=0)})'
         return query if _raw else chquery(query)[0][0]
 
