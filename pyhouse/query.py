@@ -108,7 +108,7 @@ class Query:
             self._where.append(f'({m(cache, _type)})')
 
     @chain
-    def order_by(self, fields):
+    def order_by(self, *fields):
         for f in fields:
             self._order_by.append(f'{f[0]._entity.__name__}.{f[0]._name} {f[1]}')
 
