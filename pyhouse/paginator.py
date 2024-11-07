@@ -8,8 +8,8 @@ class HousePaginator:
 
     def __init__(self, query, page, per_page):
         self.query = query
-        self.page = page
-        self.per_page = per_page
+        self.page = int(page)
+        self.per_page = int(per_page)
         self.count = self.query.count()
         self.query = self.query.max(self.per_page).offset((self.page - 1) * self.per_page)
         self.total_pages = int(math.ceil(self.count / self.per_page))
