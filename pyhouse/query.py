@@ -48,7 +48,8 @@ class CombineType:
 
 
 class Mounter:
-    query = []
+    def __init__(self):
+        self.query = []
 
     def add(self, piece):
         self.query.append(piece)
