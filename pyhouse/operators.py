@@ -10,6 +10,21 @@ def cast_exp(func, field):
     return f'{func}({exp(field)})' if func else exp(field)
 
 
+class ILIKE():
+    def __init__(self, field, value):
+        self.format = f"LOWER({exp(field)}) LIKE LOWER('%{value}%')"
+
+
+class ISTARTS():
+    def __init__(self, field, value):
+        self.format = f"LOWER({exp(field)}) LIKE LOWER('{value}%')"
+
+
+class IENDS():
+    def __init__(self, field, value):
+        self.format = f"LOWER({exp(field)}) LIKE LOWER('%{value}')"
+
+
 class BETWEEN:
     def __init__(self, field, start, end, *, cast=None):
         self.date_checker(start)
