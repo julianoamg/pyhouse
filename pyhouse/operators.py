@@ -1,4 +1,5 @@
 from datetime import datetime
+from pyhouse.utils import m
 
 
 def exp(field):
@@ -17,6 +18,12 @@ class BETWEEN:
 
     def date_checker(self, date):
         datetime.fromisoformat(date)
+
+
+class IN:
+    def __init__(self, field, values, cast=None):
+        values = [f"'{v}'" for v in values]
+        self.format = f"{cast_exp(cast, field)} IN ({m(values)})"
 
 
 class EQ:
