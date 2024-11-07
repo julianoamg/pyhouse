@@ -118,8 +118,13 @@ class Query:
     @chain
     def order_by(self, *fields):
         for f in fields:
-            exp = f[0] if isinstance(f[0], str) else f'{f[0]._entity.__name__}.{f[0]._name}'
-            self._order_by.append(f'{exp} {f[1]}')
+            if isinstance(f, str):
+                order = f'{f.lstrip("-")} {"DESC" if f.startswith("-") else "ASC"}'
+            else:
+                exp = f[0] if isinstance(f[0], str) else f'{f[0]._entity.__name__}.{f[0]._name}'
+                order = f'{exp} {f[1]}'
+
+            self._order_by.append(order)
 
     def _produce_query(self, _max=_max):
         entity_name = self._entity.__name__
