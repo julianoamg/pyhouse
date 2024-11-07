@@ -110,7 +110,8 @@ class Query:
     @chain
     def order_by(self, *fields):
         for f in fields:
-            self._order_by.append(f'{f[0]._entity.__name__}.{f[0]._name} {f[1]}')
+            exp = f[0] if isinstance(f[0], str) else f'{f[0]._entity.__name__}.{f[0]._name}'
+            self._order_by.append(f'{exp} {f[1]}')
 
     def _produce_query(self, _max=_max):
         entity_name = self._entity.__name__
