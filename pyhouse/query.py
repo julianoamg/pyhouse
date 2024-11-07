@@ -16,14 +16,26 @@ def get_grouped_fields(fields):
     return [f.split(' AS ')[-1] for f in fields if 'sum(' not in f.lower()]
 
 
-def mount_fields(fields, *, with_entity=True, func='', fsuffix='', suffix=''):
+def format_exp(f, func, with_entity=True, fsuffix=''):
+    _entity_name = f'{f._entity.__name__}.' if with_entity else ''
+    _exp = f'{_entity_name}{f._name}{fsuffix}'
+    _exp = f'{func}({_exp})' if func else _exp
+    return _exp
+
+
+def mount_fields(fields, kw_fields, with_entity=True, func='', fsuffix='', suffix=''):
     _fields = []
 
     for f in fields:
-        _entity_name = f'{f._entity.__name__}.' if with_entity else ''
-        _exp = f'{f._name}{fsuffix}'
-        _exp = f'{func}({_exp})' if func else _exp
+        _exp = format_exp(f, func, with_entity, fsuffix)
         field = f'{_exp} AS {f._name}{suffix}'
+
+        if field not in _fields:
+            _fields.append(field)
+
+    for n, f in kw_fields.items():
+        _exp = format_exp(f, func, with_entity, fsuffix)
+        field = f'{_exp} AS {n}'
 
         if field not in _fields:
             _fields.append(field)
@@ -70,22 +82,18 @@ class Query:
             self._combine.append(f'{_type} JOIN {_0_name} ON {_0} = {_1}')
 
     @chain
-    def read(self, *fields):
-        for f in fields:
-            field = f'{f._entity.__name__}.{f._name} AS {f._name}'
-
-            if field not in self._fields:
-                self._fields.append(field)
+    def read(self, *fields, **kw_fields):
+        for f in mount_fields(fields, kw_fields):
+            if f not in self._fields:
+                self._fields.append(f)
 
     @chain
-    def sum(self, *fields):
+    def sum(self, *fields, **kw_fields):
         self._grouped = True
 
-        for f in fields:
-            field = f'SUM({f._entity.__name__}.{f._name}) AS {f._name}_sum'
-
-            if field not in self._fields:
-                self._fields.append(field)
+        for f in mount_fields(fields, kw_fields, func='SUM', suffix='_sum'):
+            if f not in self._fields:
+                self._fields.append(f)
 
     @chain
     def offset(self, n: int):
@@ -147,7 +155,7 @@ class Query:
     def count(self):
         return chquery(f'SELECT count(*) FROM ({self.query()})')[0][0]
 
-    def unify(self, *fields, func="SUM", suffix='_unify', _raw=False):
-        _fields = mount_fields(fields, with_entity=False, func=func, fsuffix='_sum', suffix=suffix)
+    def unify(self, *fields, func="SUM", suffix='_unify', _raw=False, **kw_fields):
+        _fields = mount_fields(fields, kw_fields, with_entity=False, func=func, fsuffix='_sum', suffix=suffix)
         query = f'SELECT {m(_fields)} FROM ({self.query(_max=0)})'
         return query if _raw else as_dict(chquery(query), get_fields(_fields))
