@@ -13,4 +13,4 @@ class Settings:
                 del self._items[i]
 
     def as_query(self):
-        return f"SETTINGS {', '.join(self._items)}"
+        return f"SETTINGS {', '.join(self._items)}" if self._items else ''
