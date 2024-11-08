@@ -132,7 +132,22 @@ def edit_query(entity, changed, _raw):
 
 
 def create_query(entity, _raw):
-    definition = [f'{k} {v.name}' for k, v in scan_attrs(entity).items() if isinstance(v, DataType)]
+    definition = []
+
+    mapping = {
+        'DateTime': 'timezone',
+        'DateTime64': 'timezone'
+    }
+
+    for name, prop in scan_attrs(entity).items():
+        param = ''
+
+        if prop.name in mapping:
+            param = prop.params.get(mapping[prop.name])
+            param = f"('{param}')" if param else ''
+
+        definition.append(f'{name} {prop.name}{param}')
+
     query = f"""
         CREATE TABLE IF NOT EXISTS {entity.__name__} 
         ({m(definition)})
