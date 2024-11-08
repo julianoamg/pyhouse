@@ -44,7 +44,7 @@ class Entity(metaclass=Meta):
 
     def from_object(self, obj):
         for name in self._attrs.keys():
-            if hasattr(obj, name):
+            if hasattr(obj, name) and name != 'id':
                 setattr(self, name, getattr(obj, name))
 
     @classmethod
