@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from pyhouse.connection import connection
 from pyhouse.fields import DataType, Type
 from pyhouse.functions import add_query, edit_query, search_query, create_query, drop_query
@@ -42,10 +44,20 @@ class Entity(metaclass=Meta):
             if prop in self._attrs:
                 self._changed.update({prop: True})
 
-    def from_object(self, obj):
+    def from_object(self, obj, casts=None):
         for name in self._attrs.keys():
-            if hasattr(obj, name) and name != 'id':
-                setattr(self, name, getattr(obj, name))
+            if not hasattr(obj, name) or name == 'id':
+                continue
+
+            v = getattr(obj, name)
+
+            if casts:
+                for cast in casts:
+                    if isinstance(v, cast[0]):
+                        v = cast[1](v)
+                        break
+
+            setattr(self, name, v)
 
     @classmethod
     def _execute(cls, query, _raw=False):
