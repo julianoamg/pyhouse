@@ -53,7 +53,7 @@ class Entity(metaclass=Meta):
 
             if casts:
                 for cast in casts:
-                    if isinstance(v, cast[0]):
+                    if isinstance(cast[0], v):
                         v = cast[1](v)
                         break
 
